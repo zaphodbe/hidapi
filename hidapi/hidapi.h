@@ -438,6 +438,30 @@ extern "C" {
 		*/
 		HID_API_EXPORT const wchar_t* HID_API_CALL hid_error(hid_device *dev);
 
+        /** @brief This is a function prototype for a call back from
+         *  the read_thread when a report is received.
+         *  
+         *  @param rpt Is a pointer to a biffer containing a report
+         *  @param lin Is the length of the data in the report
+         *  
+         *  @returns 0 if the report is unprocessed and should be passed
+         *         via the hid_read(_timeout) functions or non 0 if
+         *         handled
+        */
+        typedef int (*HID_API_REPORT_CALLBACK)(void *param, void *rpt, size_t len);
+
+        /** @brief Register a callback function
+         *  
+         *  @param dev A device handle from hid_open()
+         *  @param function pointer to a HID_API_REPORT_CALLBACK or NULL
+         *                  to disable
+         *  @param param pointer that will be 1st param passed to the
+         *               callback
+         *  
+         *  @returns the previous function pointer
+        */
+        HID_API_REPORT_CALLBACK hid_set_report_callback(hid_device *dev, HID_API_REPORT_CALLBACK callback, void * param);
+
 #ifdef __cplusplus
 }
 #endif

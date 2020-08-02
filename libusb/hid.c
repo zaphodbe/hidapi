@@ -174,7 +174,10 @@ struct hid_device_ {
 	/* List of received input reports. */
 	struct input_report *input_reports;
 
-	/* Was kernel driver detached by libusb */
+    /* The registered callback function set with hid_set_report_callback() */
+    HID_API_REPORT_CALLBACK callback;
+
+    /* Was kernel driver detached by libusb */
 #ifdef DETACH_KERNEL_DRIVER
 	int is_driver_detached;
 #endif
@@ -743,6 +746,10 @@ static void read_callback(struct libusb_transfer *transfer)
 		rpt->len = transfer->actual_length;
 		rpt->next = NULL;
 
+        /* If there is a callback set call it */
+        if (dev->callback && dev->callback(rpt, report_length))
+            goto resubmit;
+
 		pthread_mutex_lock(&dev->mutex);
 
 		/* Attach the new report object to the end of the list. */
@@ -787,6 +794,7 @@ static void read_callback(struct libusb_transfer *transfer)
 		LOG("Unknown transfer code: %d\n", transfer->status);
 	}
 
+resubmit:
 	/* Re-submit the transfer object. */
 	res = libusb_submit_transfer(transfer);
 	if (res != 0) {
@@ -1551,6 +1559,13 @@ uint16_t get_usb_code_for_current_locale(void)
 
 	/* Found nothing. */
 	return 0x0;
+}
+
+HID_API_REPORT_CALLBACK hid_set_report_callback(hid_device *dev, HID_API_REPORT_CALLBACK callback)
+{
+    HID_API_REPORT_CALLBACK old_callback = dev->callback;
+    dev->callback = callback;
+    return old_callback;
 }
 
 #ifdef __cplusplus

@@ -115,6 +115,10 @@ struct hid_device_ {
 	CFIndex max_input_report_len;
 	struct input_report *input_reports;
 
+    /* The registered callback function set with hid_set_report_callback() */
+    HID_API_REPORT_CALLBACK callback;
+    void *callback_param1;
+
 	pthread_t thread;
 	pthread_mutex_t mutex; /* Protects input_reports */
 	pthread_cond_t condition;
@@ -679,6 +683,10 @@ static void hid_report_callback(void *context, IOReturn result, void *sender,
 	rpt->len = report_length;
 	rpt->next = NULL;
 
+    /* If there is a callback set call it */
+    if (dev->callback && dev->callback(dev->callback_param1, report, report_length))
+        return;
+
 	/* Lock this section */
 	pthread_mutex_lock(&dev->mutex);
 
@@ -1164,6 +1172,13 @@ HID_API_EXPORT const wchar_t * HID_API_CALL  hid_error(hid_device *dev)
 	return L"hid_error is not implemented yet";
 }
 
+HID_API_REPORT_CALLBACK hid_set_report_callback(hid_device *dev, HID_API_REPORT_CALLBACK callback, void* param1)
+{
+    HID_API_REPORT_CALLBACK old_callback = dev->callback;
+    dev->callback = callback;
+    dev->callback_param1 = param1;
+    return old_callback;
+}
 
 
 
